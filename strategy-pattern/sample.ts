@@ -1,31 +1,50 @@
-type PaymentStrategy = (amount: number) => void;
+// 手数料計算をする関数の型
+type FeeStrategy = (amount: number) => number;
 
-const creditCardStrategy: PaymentStrategy = (amount) => {
-  console.log(`Paying $${amount} with a credit card.`);
-  // クレジットカードの支払い処理
+// クレジットカード決済の手数料計算ロジック
+const creditCardStrategy: FeeStrategy = (amount) => {
+  return amount * 0.01;
 };
 
-const paypalStrategy: PaymentStrategy = (amount) => {
-  console.log(`Paying $${amount} with PayPal.`);
-  // PayPalの支払い処理
+// paypalの手数料計算ロジック
+const paypalStrategy: FeeStrategy = (amount) => {
+  return amount * 0.01 + 50;
 };
 
-const cashStrategy: PaymentStrategy = (amount) => {
-  console.log(`Paying $${amount} in cash.`);
-  // 現金支払いの処理
+// 現金決済の手数料計算ロジック
+const cashStrategy: FeeStrategy = (_amount) => {
+  return 100;
 };
 
-function processPayment(strategy: PaymentStrategy, amount: number): void {
-  strategy(amount);
-}
+/**
+ * 合計金額を計算する
+ * @param feeStrategy 手数料計算用のコールバック関数
+ * @param amount 金額
+ * @param discountRate 割引率
+ * @returns 合計金額
+ */
+const paymentProcess = (
+  feeStrategy: FeeStrategy,
+  amount: number,
+  discountRate: number
+): number => {
+  return (amount + feeStrategy(amount)) * (1 - discountRate);
+};
 
-const paymentAmount = 100;
+console.log(paymentProcess(creditCardStrategy, 100, 0.1));
+console.log(paymentProcess(paypalStrategy, 100, 0.1));
+console.log(paymentProcess(cashStrategy, 100, 0.1));
 
-processPayment(creditCardStrategy, paymentAmount);
-// Output: Paying $100 with a credit card.
+/**
+ * 合計金額を計算する（カリー化ver.）
+ * @param feeStrategy 手数料計算用のコールバック関数
+ * @param amount 金額
+ * @returns 割引率を受け取って合計金額を返す関数
+ */
+const paymentProcessCurrying =
+  (feeStrategy: FeeStrategy, amount: number) => (discountRate: number) =>
+    (amount + feeStrategy(amount)) * (1 - discountRate);
 
-processPayment(paypalStrategy, paymentAmount);
-// Output: Paying $100 with PayPal.
-
-processPayment(cashStrategy, paymentAmount);
-// Output: Paying $100 in cash.
+const creditCardPayment = paymentProcessCurrying(creditCardStrategy, 100);
+console.log(creditCardPayment(0.1)); // 割引率10%の場合
+console.log(creditCardPayment(0)); // 割引なしの場合
